@@ -1,25 +1,63 @@
 # SIH-2026-AI-ML-ENABLED-SEAMLESS-NAVIGATION
-# seamless navigation sensor sanity test
+# GPS-Denied Vehicle Localization Using Dead Reckoning
 
-This Python script offers a streamlined approach to analyzing time-series sensor data exported from the Physics Toolbox application. It automates crucial steps from data ingestion to visualization and integrity checks, making it an invaluable tool for anyone working with Physics Toolbox recordings.
+This project evaluates vehicle-position estimation during a simulated GPS blackout using:
 
-## Purpose
+- **Phone-only inertial dead reckoning** — phone accelerometer and gyroscope data.
+- **Vehicle wheel-odometry dead reckoning** — ECU wheel-speed and yaw-rate data.
 
-To help researchers, students, and enthusiasts quickly understand, validate, and visualize their Physics Toolbox sensor data, identifying potential issues like data dropouts or recording gaps.
+GPS is used only as ground truth to compare the estimated position after the blackout window.
 
-## Key Features
+## Files
 
--   **CSV Upload & Parsing**: Easily upload Physics Toolbox CSV files and correctly parse their unique format.
--   **Time-Series Processing**: Converts raw timestamps into elapsed seconds for consistent analysis.
--   **Sampling Rate Validation**: Estimates the actual sampling rate and detects significant gaps in the recording.
--   **Sensor Data Visualization**: Generates plots for accelerometer and gyroscope data over time.
--   **Data Integrity Checks**: Verifies raw g-force magnitudes and identifies hidden recording gaps due to app backgrounding.
--   **GPS Speed Analysis**: Visualizes GPS speed data, distinguishing between valid readings and 'no fix' instances.
--   **Event Correlation**: Provides functionality to overlay custom event markers on plots for easy correlation with experiment logs.
+| File | Description |
+|---|---|
+| `data_quality_check.py` | Checks sampling rate, sensor gaps, GPS validity, wheel speeds, and ZUPT behavior. Supports both phone (`S-*.csv`) and vehicle (`V-*.csv`) files. |
+| `dead_reckoning_fixed.py` | Phone-only dead reckoning using acceleration, yaw rate, gravity removal, and stationary detection (ZUPT). |
+| `dead_reckoning_vehicle.py` | Vehicle dead reckoning using wheel speeds, wheel radius, and ECU yaw rate. |
 
-## How to Use
+## Input Data
 
-1.  Run the notebook in Google Colab.
-2.  Upload your Physics Toolbox CSV file when prompted.
-3.  The script will automatically perform the analysis, display key statistics, and generate plots.
-4.  Optionally, modify the `event_start` and `event_end` variables in the `run_analysis` function to mark specific events from your test log.
+The scripts use IO-VNBD CSV logs:
+
+- **Phone file:** `S-*.csv`
+- **Vehicle ECU file:** `V-*.csv`
+
+Required fields include GPS latitude/longitude, timestamps, and the relevant IMU or vehicle-sensor fields.
+
+## Configuration
+
+Set the simulated GPS-blackout period in all scripts:
+
+```python
+WINDOW_START_S = 100
+WINDOW_END_S = 150
+```
+
+For vehicle odometry, set the approximate wheel radius:
+
+```python
+WHEEL_RADIUS_M = 0.30
+```
+
+## Workflow
+
+1. Run `data_quality_check.py` to validate the recording.
+2. Run `dead_reckoning_fixed.py` with a phone-side CSV.
+3. Run `dead_reckoning_vehicle.py` with a vehicle-ECU CSV.
+4. Compare the dead-reckoning path against the GPS path and review final position error.
+
+## Outputs
+
+Each dead-reckoning script provides:
+
+- GPS versus estimated 2D trajectory.
+- Final position error in metres.
+- Error growth over different GPS-outage durations.
+- Sensor or speed sanity-check plots.
+
+## Notes
+
+- Phone-only dead reckoning can drift quickly because accelerometer and gyroscope errors accumulate over time.
+- Vehicle wheel odometry is generally more stable but can be affected by wheel-radius error and tyre slip.
+- Keep the blackout window identical across both methods for a fair comparison.
